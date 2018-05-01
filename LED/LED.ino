@@ -17,6 +17,8 @@ const char mqttServer[] = "";
 const int  mqttPort     = -1;
 const char topic[]      = "Garage";
 
+int timer = 0;
+
 WiFiClient netClient;
 PubSubClient mqttClient;
 
@@ -27,8 +29,8 @@ void setup()
   for(int i = 0; i < NUM_LEDS;i++)
   {
     leds[i] = CRGB::Blue;
-    FastLED.show(); 
   }
+  FastLED.show(); 
   
   //Init WiFi
   Serial.begin(115200);
@@ -65,6 +67,7 @@ void connect()
 //Executes when a message is received
 void callback(const char topic[], byte* payload, unsigned int length)
 {
+  timer = 0;
   payload[length] = '\0'; //null-terminate the received msg
   /*
   payload is received as a byte*, 
@@ -84,15 +87,33 @@ void callback(const char topic[], byte* payload, unsigned int length)
       leds[i] = CRGB::Green;
     }
   }
-  FastLED.setBrightness(20);
+  FastLED.setBrightness(40);
   FastLED.show(); 
 }
 
 void loop() 
 {
-  if (mqttClient.loop()) 
+  if (!mqttClient.loop())
   {
+    //turn half of the ring orange if the LED disconnects from MQTT
+    for(int i = (NUM_LEDS/2); i < NUM_LEDS; i++)
+    {
+      leds[i] = CRGB::Orange;
+    }
+    FastLED.show(); 
     connect();
   }
+
+  //Turn half of the ring blue if the sensor has not responded in ~12 seconds
+  timer++;
+  if(timer >= 12)
+  {
+     for(int i = (NUM_LEDS/2); i < NUM_LEDS; i++)
+     {
+       leds[i] = CRGB::Blue;
+     }
+     FastLED.show(); 
+  }
+  
   delay(1000);
 }

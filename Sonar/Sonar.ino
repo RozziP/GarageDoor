@@ -4,11 +4,12 @@
 // defines pins numbers
 #define TRIG_PIN 2  //D4
 #define ECHO_PIN 0  //D3
-#define OPEN_DISTANCE 50 //cm
+#define OPEN_DISTANCE 70 //cm
 
 long duration;
 int  distance = 0;
 int  tempDistance;
+int  timer = 0;
 
 //User-specific vars
 char ssid[] = "";
@@ -17,7 +18,7 @@ char pass[] = "";
 const char mqttUser[]   = "";
 const char mqttPass[]   = "";
 const char mqttServer[] = "";
-const int  mqttPort     =-1;
+const int  mqttPort     = -1;
 const char topic[]      = "Garage";
 
 WiFiClient netClient;
@@ -61,7 +62,7 @@ void connect()
 }
 
 void loop() 
-{
+{  
   // Clears the TRIG_PIN
   digitalWrite(TRIG_PIN, LOW);
   delayMicroseconds(2);
@@ -76,29 +77,39 @@ void loop()
   
   // Calculating the distance
   tempDistance = duration*0.034/2;
+  Serial.print("tempd: ");
+  Serial.println(tempDistance);
 
   //Only publish if the distance has changed
-  if(tempDistance != distance)
+  if(tempDistance-distance > 5 | tempDistance-distance < -5)
   {
     distance = tempDistance;
     // Publish that shit
-    if(distance > OPEN_DISTANCE)
-    {
-      mqttClient.publish(topic,"c");
-    }
-    else
+    if(distance < OPEN_DISTANCE)
     {
       mqttClient.publish(topic,"o");
     }
-    Serial.print(distance);
+    else
+    {
+      mqttClient.publish(topic,"c");
+    }
+    Serial.println(distance);
   }
   
   //make sure we stay connected
-  if (mqttClient.loop()) 
+  if (!mqttClient.loop()) 
   {
     connect();
   }
+
+  //Let the clients know that the user is active by sending a message every ~10 seconds
+  timer++;
+  if(timer >= 10)
+  {
+    mqttClient.publish(topic, "alive");
+    timer = 0;
+  }
     
-  delay(2000);
+  delay(1000);
 }
 
