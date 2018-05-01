@@ -8,14 +8,14 @@
 CRGB leds[NUM_LEDS];
 
 //User-specific vars
-const char ssid[] = "";
-const char pass[] = "";
+char ssid[] = "";
+char pass[] = "";
 
 const char mqttUser[]   = "";
 const char mqttPass[]   = "";
 const char mqttServer[] = "";
 const int  mqttPort     = -1;
-const char topic[]      = "garage"
+const char topic[]      = "Garage";
 
 WiFiClient netClient;
 PubSubClient mqttClient;
@@ -51,7 +51,7 @@ void connect()
   }
    Serial.println("\nWiFiconnected");
 
-  //connect to mqtt broker
+  //connect to mqtt broker and subscribe to topic
   while(!mqttClient.connected())
   {
   mqttClient.connect("Light", mqttUser, mqttPass);
@@ -68,9 +68,8 @@ void callback(const char topic[], byte* payload, unsigned int length)
   payload[length] = '\0'; //null-terminate the received msg
   /*
   payload is received as a byte*, 
-  which needs to be casted to char* and dereferenced in order to compare it
+  which needs to be cast to char* and dereferenced in order to compare it
   */
-  Serial.println(*(char*)payload); //print for testing purposes
   if(*(char*)payload == 'o')
   {
     for(int i = 0; i < NUM_LEDS;i++)
@@ -85,14 +84,13 @@ void callback(const char topic[], byte* payload, unsigned int length)
       leds[i] = CRGB::Green;
     }
   }
-  FastLED.show(); 
   FastLED.setBrightness(20);
+  FastLED.show(); 
 }
 
 void loop() 
 {
-  mqttClient.loop();
-  if (!mqttClient.connected()) 
+  if (mqttClient.loop()) 
   {
     connect();
   }
